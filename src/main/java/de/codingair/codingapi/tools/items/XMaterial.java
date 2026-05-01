@@ -2311,19 +2311,26 @@ public enum XMaterial /* implements com.cryptomorin.xseries.abstractions.Materia
          * @since 1.0.0
          */
         private static final int VERSION;
+
+        static { // This needs to be right below VERSION because of initialization order.
+            String version = Bukkit.getVersion();
+            // Support both classic "1.x.y" and new year-based "26.x.y" versioning schemes.
+            Matcher matcher = Pattern.compile("MC: (\\d+)\\.(\\d+)").matcher(version);
+
+            if (matcher.find()) {
+                int major = Integer.parseInt(matcher.group(1));
+                int minor = Integer.parseInt(matcher.group(2));
+                // Classic scheme: "MC: 1.21.4" → VERSION = 21
+                // New scheme:     "MC: 26.1.2" → VERSION = 2601 (so supports(21) etc. still pass)
+                VERSION = major == 1 ? minor : major * 100 + minor;
+            } else throw new IllegalArgumentException("Failed to parse server version from: " + version);
+        }
+
         /**
          * Cached result if the server version is after the v1.13 flattening update.
          *
          * @since 3.0.0
          */
         private static final boolean ISFLAT = supports(13);
-
-        static { // This needs to be right below VERSION because of initialization order.
-            String version = Bukkit.getVersion();
-            Matcher matcher = Pattern.compile("MC: \\d\\.(\\d+)").matcher(version);
-
-            if (matcher.find()) VERSION = Integer.parseInt(matcher.group(1));
-            else throw new IllegalArgumentException("Failed to parse server version from: " + version);
-        }
     }
 }

@@ -28,26 +28,38 @@ public class Version {
                 specification = ServerBuildInfo.minecraftVersionName();
 
                 String parts = ServerBuildInfo.minecraftVersionId();
-                String minorVersion = parts.split("\\.")[1];
-                String subVersion = parts.contains(".") ? parts.split("\\.")[2] : "0";
+                int major = Integer.parseInt(parts.split("\\.")[0]);
+                int minor = Integer.parseInt(parts.split("\\.")[1]);
+                int patch = parts.split("\\.").length > 2 ? Integer.parseInt(parts.split("\\.")[2]) : 0;
 
-                String newVersion = minorVersion + "." + (Integer.parseInt(subVersion) < 10 ? "0" + subVersion : subVersion);
-
-                version = Double.parseDouble(newVersion);
+                if (major == 1) {
+                    // Classic scheme: 1.21.4 → 21.04
+                    String newVersion = minor + "." + (patch < 10 ? "0" + patch : String.valueOf(patch));
+                    version = Double.parseDouble(newVersion);
+                } else {
+                    // New year-based scheme: 26.1.2 → 2601.02
+                    version = major * 100.0 + minor + patch * 0.01;
+                }
             } else {
                 // version
                 String bukkitVersion = Bukkit.getVersion();
 
-                Pattern p = Pattern.compile("\\(MC: \\d\\.\\d\\d?(\\.\\d\\d?)?");
+                // Support classic "1.x.y" and new year-based "26.x.y" versioning
+                Pattern p = Pattern.compile("\\(MC: (\\d+)\\.(\\d+)(?:\\.(\\d+))?\\)");
                 Matcher match = p.matcher(bukkitVersion);
                 if (match.find()) {
-                    String parts = match.group().substring(7);
-                    String majorVersion = parts.split("\\.")[0];
-                    String subVersion = parts.contains(".") ? parts.split("\\.")[1] : "0";
+                    int major = Integer.parseInt(match.group(1));
+                    int minor = Integer.parseInt(match.group(2));
+                    int patch = match.group(3) != null ? Integer.parseInt(match.group(3)) : 0;
 
-                    String newVersion = majorVersion + "." + (Integer.parseInt(subVersion) < 10 ? "0" + subVersion : subVersion);
-
-                    version = Double.parseDouble(newVersion);
+                    if (major == 1) {
+                        // Classic: 1.21.4 → 21.04
+                        String newVersion = minor + "." + (patch < 10 ? "0" + patch : String.valueOf(patch));
+                        version = Double.parseDouble(newVersion);
+                    } else {
+                        // New year-based: 26.1.2 → 2601.02
+                        version = major * 100.0 + minor + patch * 0.01;
+                    }
                 }
 
                 // specification
