@@ -54,12 +54,29 @@ public abstract class SignGUI {
         getZ = IReflection.getNonStaticField(baseBlockPosition, int.class, 2);
 
         if (Version.atLeast(9))
-            packetLines = IReflection.getField(PacketUtils.PacketPlayInUpdateSignClass, String[].class, 0);
+            packetLines = findLinesField(PacketUtils.PacketPlayInUpdateSignClass);
         else packetLines = IReflection.getField(PacketUtils.PacketPlayInUpdateSignClass, "b");
 
         if (Version.atLeast(20.06)) {
             setWorld = IReflection.getMethod(PacketUtils.TileEntityClass, new Class[]{PacketUtils.WorldClass});
         } else setWorld = null;
+    }
+
+    /**
+     * Until MC 26.3 the sign lines are a {@code String[]} field; since 26.3 the packet is a record
+     * with {@code List<String> lines}.
+     */
+    private static IReflection.FieldAccessor<?> findLinesField(Class<?> packetClass) {
+        try {
+            return IReflection.getField(packetClass, String[].class, 0);
+        } catch (IllegalStateException arrayMissing) {
+            return IReflection.getField(packetClass, List.class, 0);
+        }
+    }
+
+    private static String[] toLines(Object raw) {
+        if (raw instanceof List) return ((List<?>) raw).stream().map(String::valueOf).toArray(String[]::new);
+        return (String[]) raw;
     }
 
     private final Player player;
@@ -148,7 +165,7 @@ public abstract class SignGUI {
                     String[] lines;
 
                     if (Version.atLeast(9)) {
-                        lines = (String[]) packetLines.get(packet);
+                        lines = toLines(packetLines.get(packet));
                     } else {
                         lines = sign == null ? new String[4] : sign.getLines();
 
